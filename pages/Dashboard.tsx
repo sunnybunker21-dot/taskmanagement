@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
 import { api } from '../services/api';
 import { translations } from '../utils/i18n';
+import { Role } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const data = [
@@ -17,7 +18,7 @@ const data = [
 ];
 
 const Dashboard: React.FC = () => {
-  const { language } = useSelector((state: RootState) => state.auth);
+  const { language, user } = useSelector((state: RootState) => state.auth);
   const t = translations[language];
   const [stats, setStats] = useState<any>({});
 
@@ -27,7 +28,7 @@ const Dashboard: React.FC = () => {
         const res = await api.get('/dashboard/summary');
         setStats(res);
       } catch (e) {
-        // Mock data if API fails
+        // Fallback mock data
         setStats({
           totalTickets: 128,
           openTickets: 12,
@@ -41,24 +42,35 @@ const Dashboard: React.FC = () => {
     fetchStats();
   }, []);
 
+  const isAdmin = user?.role === Role.ADMIN || user?.role === Role.MANAGEMENT;
+  const isAgent = user?.role === Role.AGENT || user?.role === Role.SALES;
+  const isDev = user?.role === Role.DEVELOPER;
+
   const statCards = [
-    { title: t.totalTickets, value: stats.totalTickets, icon: '🎫', color: 'bg-blue-600' },
-    { title: t.openTickets, value: stats.openTickets, icon: '🔥', color: 'bg-red-500' },
-    { title: t.activeChats, value: stats.activeChats, icon: '💬', color: 'bg-green-500' },
-    { title: t.assignedTasks, value: stats.assignedTasks, icon: '✅', color: 'bg-purple-500' },
-    { title: t.onlineStaff, value: stats.staffOnline, icon: '👥', color: 'bg-cyan-500' },
-    { title: t.performance, value: `${stats.performance}%`, icon: '📈', color: 'bg-orange-500' },
-  ];
+    { title: t.totalTickets, value: stats.totalTickets, icon: '🎫', color: 'bg-blue-600', show: isAdmin || isAgent },
+    { title: t.openTickets, value: stats.openTickets, icon: '🔥', color: 'bg-red-500', show: isAgent || isAdmin },
+    { title: t.activeChats, value: stats.activeChats, icon: '💬', color: 'bg-green-500', show: isAgent || isAdmin },
+    { title: t.assignedTasks, value: stats.assignedTasks, icon: '✅', color: 'bg-purple-500', show: isDev || isAdmin },
+    { title: t.onlineStaff, value: stats.staffOnline, icon: '👥', color: 'bg-cyan-500', show: isAdmin },
+    { title: t.performance, value: `${stats.performance}%`, icon: '📈', color: 'bg-orange-500', show: true },
+  ].filter(card => card.show);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Welcome, {user?.name}</h1>
+          <p className="text-slate-400 mt-1 uppercase text-xs font-mono tracking-widest">{user?.role} Overview</p>
+        </div>
+      </div>
+
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-${statCards.length} gap-4`}>
         {statCards.map((stat, idx) => (
-          <div key={idx} className="glass p-6 rounded-3xl hover:translate-y-[-4px] transition-transform duration-300">
-            <div className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center text-xl mb-4 shadow-lg`}>
+          <div key={idx} className="glass p-6 rounded-3xl hover:translate-y-[-4px] transition-transform duration-300 group">
+            <div className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center text-xl mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
               {stat.icon}
             </div>
-            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">{stat.title}</p>
+            <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider">{stat.title}</p>
             <h3 className="text-2xl font-bold text-white mt-1">{stat.value}</h3>
           </div>
         ))}
@@ -68,7 +80,7 @@ const Dashboard: React.FC = () => {
         <div className="glass p-8 rounded-3xl">
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-            Efficiency Trends
+            {isDev ? 'Sprint Velocity' : 'Response Efficiency'}
           </h2>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
