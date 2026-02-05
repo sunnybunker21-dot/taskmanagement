@@ -1,0 +1,8 @@
+{
+  "name": "Nexus Dashboard",
+  "description": "A comprehensive SaaS Task Management and Live Support Dashboard with role-based access control, real-time chat, and ticketing systems.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
